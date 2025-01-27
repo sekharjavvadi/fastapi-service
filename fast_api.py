@@ -56,7 +56,7 @@ def save_screenshot(frame, timestamp, video_name):
     
     return azure_url
 
-def analyze_video_stream(video_path,input_seconds=0):
+def analyze_video_stream(video_path,input_seconds):
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     fps = cap.get(cv2.CAP_PROP_FPS) if cap.get(cv2.CAP_PROP_FPS) > 0 else 30  # Fallback if FPS is not provided
@@ -117,7 +117,7 @@ def analyze_video_stream(video_path,input_seconds=0):
                     "time": timestamp_in_seconds,
                     "head_position": head_position,
                     "multiple_face_detection": multiple_face_detection,
-                    "screenshot_url": azure_url      })
+                    "screenshot_url": azure_url,})
                         
                 else:
                 # Append results for the current timestamp
