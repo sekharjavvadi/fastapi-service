@@ -56,7 +56,7 @@ def save_screenshot(frame, timestamp, video_name):
     
     return azure_url
 
-def analyze_video_stream(video_path):
+def analyze_video_stream(video_path,input_seconds):
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     fps = cap.get(cv2.CAP_PROP_FPS) if cap.get(cv2.CAP_PROP_FPS) > 0 else 30  # Fallback if FPS is not provided
@@ -72,7 +72,14 @@ def analyze_video_stream(video_path):
                 break
 
             frame_count += 1
-            timestamp_in_seconds = int(frame_count / fps)  # Get timestamp in seconds
+            # if input_seconds>0:
+            #     frame_interval= int(fps * input_seconds)  # Calculate frame interval based on input_seconds
+            #     if frame_count % frame_interval == 0:
+            #         timestamp_in_seconds = int(frame_count / fps)  # Get timestamp in seconds
+            # else:
+            #     timestamp_in_seconds = int(frame_count / fps) 
+            
+            timestamp_in_seconds = int(frame_count / fps)
 
             # Process only once per second
             if timestamp_in_seconds > last_processed_second:
@@ -85,12 +92,12 @@ def analyze_video_stream(video_path):
 
                 # Default values
                 head_position = "unknown"
-                multiple_face_detection = False
+                multiple_face_detection = "false"
 
                 if results.detections:
                     face_count = len(results.detections)
                     if face_count > 1:
-                        multiple_face_detection = True
+                        multiple_face_detection = "true"
                     
                     for detection in results.detections:
                         # Improved head orientation analysis
@@ -110,7 +117,7 @@ def analyze_video_stream(video_path):
                     "time": timestamp_in_seconds,
                     "head_position": head_position,
                     "multiple_face_detection": multiple_face_detection,
-                    "screenshot_url": azure_url      })
+                    "screenshot_url": azure_url,})
                         
                 else:
                 # Append results for the current timestamp
@@ -124,7 +131,7 @@ def analyze_video_stream(video_path):
     return results_list
 
 
-def analyze_video_endpoint(video_url):
+def analyze_video_endpoint(video_url,input_seconds):
     # data = await request.json()
     # video_url = data.get("video_url")
     if not video_url:
@@ -136,7 +143,7 @@ def analyze_video_endpoint(video_url):
         return {"error": "Failed to download video from the URL provided"}
 
     # Perform analysis on the video
-    result = analyze_video_stream(video_path)
+    result = analyze_video_stream(video_path,input_seconds)
 
     # Clean up the downloaded video file
     os.remove(video_path)
@@ -144,10 +151,11 @@ def analyze_video_endpoint(video_url):
     return {"analysis_result": result}
 
 
-# # Example usage
-# video_url = "https://jobfairreaidy.blob.core.windows.net/recordings/6734e016df0d8f51c5d50c38.mp4"
-# result = analyze_video_endpoint(video_url)
-# print(result)
+# Example usage
+video_url = "https://jobfairreaidy.blob.core.windows.net/recordings/6734e016df0d8f51c5d50c38.mp4"
+input_seconds=3
+result = analyze_video_endpoint(video_url,input_seconds)
+print(result)
 
 # requirements
 # opencv-python

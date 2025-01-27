@@ -89,6 +89,13 @@ def analyze_video_endpoint(video_url):
 
     return {"text_result": result_text}
 
+# # Example usage
+# video_url = "https://jobfairreaidy.blob.core.windows.net/recordings/6734e016df0d8f51c5d50c38.mp4"
+# result = analyze_video_endpoint(video_url)
+# print(result)
+
+# output
+# {'text_result': 'Video Analysis Report:\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)
 # Run the API with: uvicorn fast_api:app --reload
 # Run the API with: uvicorn fast_api:app --reload
 #FastAPI - for creating the API endpoints-pip install fastapi
