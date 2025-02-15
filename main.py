@@ -7,7 +7,7 @@ import os
 
 
 
-# Initialize MediaPipe for face and landmark detection
+# Initialize MediaPipe for face and landmark detection //
 mp_face_detection = mp.solutions.face_detection
 mp_face_mesh = mp.solutions.face_mesh
 mp_drawing = mp.solutions.drawing_utils
