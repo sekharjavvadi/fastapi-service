@@ -73,13 +73,19 @@ def detect_tab_switch(prev_frame, current_frame, threshold=50):
     """Detect tab switching by measuring the difference between consecutive frames."""
     if prev_frame is None or current_frame is None:
         return False
-
-    prev_gray = cv2.cvtColor(prev_frame, cv2.COLOR_BGR2GRAY)
+ 
+    # Resize frames to the same dimensions
+    height, width = current_frame.shape[:2]
+    prev_frame_resized = cv2.resize(prev_frame, (width, height))
+ 
+    # Convert to grayscale
+    prev_gray = cv2.cvtColor(prev_frame_resized, cv2.COLOR_BGR2GRAY)
     curr_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
-
+ 
+    # Calculate absolute difference
     diff = cv2.absdiff(prev_gray, curr_gray)
     mean_diff = np.mean(diff)
-
+ 
     return mean_diff > threshold  # If large difference, tab switched
 
 def analyze_video_stream(video_path, input_seconds):
@@ -217,12 +223,43 @@ def analyze_video_endpoint(video_url, input_seconds):
     os.remove(video_path)
     return {"analysis_result": result}
 
+def analyze_tab_shift_master_func(video_url, input_seconds):
+    """Process the video and return the analysis result."""
+    if not video_url:
+        return {"error": "No video URL provided"}
+
+    # Download the video temporarily
+    video_path = download_video(video_url)
+    if not video_path:
+        return {"error": "Failed to download video from the URL provided"}
+
+    # Perform analysis on the video
+    result = analyze_video_stream(video_path, input_seconds)
+
+    # Clean up the downloaded video file
+    os.remove(video_path)
+    return {"analysis_result": result}
+
+
+
+
+
 # Example usage
 # if __name__ == "__main__":
-video_url = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
+video_url = "https://testingreaidy.blob.core.windows.net/recording/1739446444519_original-8a20c2e2-6da5-447a-ab21-f1379a13e2c1.mp4"
+screen_share_video = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
 input_seconds = 3
+
+# video analysis functionality like object detection
 result = analyze_video_endpoint(video_url, input_seconds)
 print(result)
+
+
+#  tab shifting functionality
+result2 = analyze_tab_shift_master_func(screen_share_video, input_seconds)
+print(result2)
+
+
 
 # Requirements
 # opencv-python
