@@ -5,11 +5,16 @@ import requests
 import tempfile
 import os
 from azure.storage.blob import BlobServiceClient, ContentSettings
+from ultralytics import YOLO
+
 load_dotenv()
 
 # Initialize MediaPipe for face and landmark detection
 mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
+
+# Load a more accurate YOLOv8 model
+yolo_model = YOLO('yolov8x.pt')  # Use the extra-large model for better accuracy
 
 # Azure Blob Storage Configuration
 AZURE_CONNECTION_STRING = os.getenv("proxy_connect_str")
@@ -56,7 +61,7 @@ def save_screenshot(frame, timestamp, video_name):
     
     return azure_url
 
-def analyze_video_stream(video_path,input_seconds):
+def analyze_video_stream(video_path, input_seconds):
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     fps = cap.get(cv2.CAP_PROP_FPS) if cap.get(cv2.CAP_PROP_FPS) > 0 else 30  # Fallback if FPS is not provided
@@ -72,25 +77,18 @@ def analyze_video_stream(video_path,input_seconds):
                 break
 
             frame_count += 1
-            # if input_seconds>0:
-            #     frame_interval= int(fps * input_seconds)  # Calculate frame interval based on input_seconds
-            #     if frame_count % frame_interval == 0:
-            #         timestamp_in_seconds = int(frame_count / fps)  # Get timestamp in seconds
-            # else:
-            #     timestamp_in_seconds = int(frame_count / fps) 
-            
             timestamp_in_seconds = int(frame_count / fps)
 
             # Process only once per second
             if timestamp_in_seconds > last_processed_second:
                 last_processed_second = timestamp_in_seconds
 
-
                 # Convert frame to RGB for MediaPipe
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = face_detection.process(rgb_frame)
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-                # Default values
+                # Default values for face detection
                 head_position = "unknown"
                 multiple_face_detection = "false"
 
@@ -100,7 +98,6 @@ def analyze_video_stream(video_path,input_seconds):
                         multiple_face_detection = "true"
                     
                     for detection in results.detections:
-                        # Improved head orientation analysis
                         bbox = detection.location_data.relative_bounding_box
                         if bbox.xmin < 0.3:
                             head_position = "left"
@@ -110,57 +107,68 @@ def analyze_video_stream(video_path,input_seconds):
                             head_position = "forward"
                 else:
                     head_position = "away"  # No face detected
-                if head_position != "forward":
-                        # Save the current frame and upload to Azure
-                        azure_url = save_screenshot(frame, timestamp_in_seconds, video_name)
-                        results_list.append({
-                    "time": timestamp_in_seconds,
-                    "head_position": head_position,
-                    "multiple_face_detection": multiple_face_detection,
-                    "screenshot_url": azure_url,})
-                        
-                else:
-                # Append results for the current timestamp
+
+                # YOLOv8 Object Detection
+                yolo_results = yolo_model(frame, conf=0.2)[0]  # Set to 0.2 for more detections
+                detected_objects = []
+                target_classes = ["laptop", "cell phone"]
+
+                for box in yolo_results.boxes:
+                    # x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    # confidence = box.conf[0].item()
+                    # cls_id = int(box.cls[0].item())
+                    # label = yolo_model.names[cls_id]
+                    cls_id = int(box.cls[0].item())
+                    label = yolo_model.names[cls_id]
+                    label = label.lower().replace("-", " ")
+
+                    # Filter for laptop and cell phone only
+                    if label in target_classes:
+                        # Draw green bounding box and label
+                        x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                        confidence = box.conf[0].item()
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                        cv2.putText(frame, f"{label} {confidence:.2f}",
+                                    (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+
+                        detected_objects.append(label)
+
+                # Save Screenshot if conditions met
+                if head_position != "forward" or detected_objects or multiple_face_detection == "true":
+                    azure_url = save_screenshot(frame, timestamp_in_seconds, video_name)
                     results_list.append({
-                    "time": timestamp_in_seconds,
-                    "head_position": head_position,
-                    "multiple_face_detection": multiple_face_detection
-                })
+                        "time": timestamp_in_seconds,
+                        "head_position": head_position,
+                        "multiple_face_detection": multiple_face_detection,
+                        "detected_objects": detected_objects,
+                        "screenshot_url": azure_url
+                    })
+                else:
+                    results_list.append({
+                        "time": timestamp_in_seconds,
+                        "head_position": head_position,
+                        "multiple_face_detection": multiple_face_detection,
+                        "detected_objects": detected_objects
+                    })
 
     cap.release()
     return results_list
 
-
-def analyze_video_endpoint(video_url,input_seconds):
-    # data = await request.json()
-    # video_url = data.get("video_url")
+def analyze_video_endpoint(video_url, input_seconds):
     if not video_url:
         return {"error": "No video URL provided"}
 
-    # Download the video temporarily if needed
     video_path = download_video(video_url)
     if not video_path:
         return {"error": "Failed to download video from the URL provided"}
 
-    # Perform analysis on the video
-    result = analyze_video_stream(video_path,input_seconds)
-
-    # Clean up the downloaded video file
+    result = analyze_video_stream(video_path, input_seconds)
     os.remove(video_path)
-
     return {"analysis_result": result}
 
-
 # Example usage
-video_url = "https://jobfairreaidy.blob.core.windows.net/recordings/6734e016df0d8f51c5d50c38.mp4"
-input_seconds=3
-result = analyze_video_endpoint(video_url,input_seconds)
-print(result)
-
-# requirements
-# opencv-python
-# mediapipe 
-# requests
-# azure_functions
-# azure_storage_blob 
-# python_dotenv
+video_url = "https://testingreaidy.blob.core.windows.net/recording/1739446444519_original-8a20c2e2-6da5-447a-ab21-f1379a13e2c1.mp4" 
+input_seconds = 3
+result = analyze_video_endpoint(video_url, input_seconds)
+print(result)  
