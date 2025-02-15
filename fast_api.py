@@ -5,14 +5,19 @@ import requests
 import tempfile
 import os
 import numpy as np
-from azure.storage.blob import BlobServiceClient
+from azure.storage.blob import BlobServiceClient,ContentSettings
 
 # Load environment variables
+from ultralytics import YOLO
+
 load_dotenv()
 
 # Initialize MediaPipe for face detection
 mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
+
+# Load a more accurate YOLOv8 model
+yolo_model = YOLO('yolov8x.pt')  # Use the extra-large model for better accuracy
 
 # Azure Blob Storage Configuration
 AZURE_CONNECTION_STRING = os.getenv("proxy_connect_str")
@@ -108,8 +113,9 @@ def analyze_video_stream(video_path, input_seconds):
                 # Convert frame to RGB for MediaPipe
                 rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
                 results = face_detection.process(rgb_frame)
+                frame = cv2.rotate(frame, cv2.ROTATE_90_COUNTERCLOCKWISE)
 
-                # Default values
+                # Default values for face detection
                 head_position = "unknown"
                 multiple_face_detection = "false"
 
@@ -119,7 +125,6 @@ def analyze_video_stream(video_path, input_seconds):
                         multiple_face_detection = "true"
                     
                     for detection in results.detections:
-                        # Improved head orientation analysis
                         bbox = detection.location_data.relative_bounding_box
                         if bbox.xmin < 0.3:
                             head_position = "left"
@@ -136,13 +141,59 @@ def analyze_video_stream(video_path, input_seconds):
                     azure_url = save_screenshot(frame, timestamp_in_seconds, video_name)  # Upload to Azure
 
                 # Append results for the current timestamp
-                results_list.append({
-                    "time": timestamp_in_seconds,
-                    "head_position": head_position,
-                    "multiple_face_detection": multiple_face_detection,
-                    "tab_switched": str(tab_switched).lower(),
-                    "screenshot_url": azure_url if azure_url else None
-                })
+                # results_list.append({
+                #     "time": timestamp_in_seconds,
+                #     "head_position": head_position,
+                #     "multiple_face_detection": multiple_face_detection,
+                #     "tab_switched": str(tab_switched).lower(),
+                #     "screenshot_url": azure_url if azure_url else None
+                # })
+                # YOLOv8 Object Detection
+                yolo_results = yolo_model(frame, conf=0.2)[0]  # Set to 0.2 for more detections
+                detected_objects = []
+                target_classes = ["laptop", "cell phone"]
+
+                for box in yolo_results.boxes:
+                    # x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    # confidence = box.conf[0].item()
+                    # cls_id = int(box.cls[0].item())
+                    # label = yolo_model.names[cls_id]
+                    cls_id = int(box.cls[0].item())
+                    label = yolo_model.names[cls_id]
+                    label = label.lower().replace("-", " ")
+
+                    # Filter for laptop and cell phone only
+                    if label in target_classes:
+                        # Draw green bounding box and label
+                        x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                        confidence = box.conf[0].item()
+                        cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                        cv2.putText(frame, f"{label} {confidence:.2f}",
+                                    (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+
+                        detected_objects.append(label)
+
+                # Save Screenshot if conditions met
+                if head_position != "forward" or detected_objects or multiple_face_detection == "true":
+                    azure_url = save_screenshot(frame, timestamp_in_seconds, video_name)
+                    results_list.append({
+                        "time": timestamp_in_seconds,
+                        "head_position": head_position,
+                        "multiple_face_detection": multiple_face_detection,
+                        "tab_switched": str(tab_switched).lower(),
+                        "detected_objects": detected_objects,
+                        "screenshot_url": azure_url
+                    })
+                else:
+                    results_list.append({
+                        "time": timestamp_in_seconds,
+                        "head_position": head_position,
+                        "multiple_face_detection": multiple_face_detection,
+                        "tab_switched": str(tab_switched).lower(),
+                        "detected_objects": detected_objects,
+                        "screenshot_url": azure_url if azure_url else None
+                    })
 
                 prev_frame = frame.copy()  # Ensure deep copy to avoid memory issues
 
@@ -164,15 +215,14 @@ def analyze_video_endpoint(video_url, input_seconds):
 
     # Clean up the downloaded video file
     os.remove(video_path)
-
     return {"analysis_result": result}
 
 # Example usage
-if __name__ == "__main__":
-    video_url = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
-    input_seconds = 3
-    result = analyze_video_endpoint(video_url, input_seconds)
-    print(result)
+# if __name__ == "__main__":
+video_url = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
+input_seconds = 3
+result = analyze_video_endpoint(video_url, input_seconds)
+print(result)
 
 # Requirements
 # opencv-python
