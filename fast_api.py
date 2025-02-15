@@ -12,6 +12,7 @@ load_dotenv()
 
 # Initialize MediaPipe for face detection
 mp_face_detection = mp.solutions.face_detection
+mp_drawing = mp.solutions.drawing_utils
 
 # Azure Blob Storage Configuration
 AZURE_CONNECTION_STRING = os.getenv("proxy_connect_str")
