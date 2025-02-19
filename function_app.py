@@ -79,4 +79,4 @@ def http_trigger(req: func.HttpRequest) -> func.HttpResponse:
              "This HTTP triggered function executed successfully. Pass a video_url in the query string or in the request body for a personalized response.",
              status_code=200
         )
-    
+#small comment
