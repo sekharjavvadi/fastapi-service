@@ -3,14 +3,13 @@ import mediapipe as mp
 import requests
 from datetime import timedelta
 import tempfile
-import os 
+import os
 
-
-
-# Initialize MediaPipe for face and landmark detection
+# Initialize MediaPipe for face and landmark detection //
 mp_face_detection = mp.solutions.face_detection
 mp_face_mesh = mp.solutions.face_mesh
 mp_drawing = mp.solutions.drawing_utils
+
 
 def download_video(url):
     """Download video to a temporary file and return the path."""
@@ -22,6 +21,7 @@ def download_video(url):
         return temp_file.name
     else:
         return None
+
 
 def analyze_video_stream(video_path):
     cap = cv2.VideoCapture(video_path)
@@ -54,7 +54,7 @@ def analyze_video_stream(video_path):
                     # Head orientation analysis (simplified for example)
                     # Here we would ideally use landmarks to check if head is left, right, or forward
                     # Placeholder: Assume forward for simplicity, modify with proper head detection logic
-                    
+
                     head_position = "forward"  # Replace this with real orientation logic
                     head_movements.append(f"{timestamp}: Head position {head_position}")
             else:
@@ -62,13 +62,13 @@ def analyze_video_stream(video_path):
                 head_movements.append(f"{timestamp}: No face detected (away)")
 
     cap.release()
-    
+
     # Prepare text output
     output_text = "Video Analysis Report:\n"
     output_text += "\n".join(head_movements)
     if cheating_detected:
         output_text += "\n\nNote: Cheating detected (multiple faces at some points in the video)."
-    
+
     return output_text
 
 
@@ -89,12 +89,18 @@ def analyze_video_endpoint(video_url):
 
     return {"text_result": result_text}
 
-# Run the API with: uvicorn fast_api:app --reload
-# Run the API with: uvicorn fast_api:app --reload
-#FastAPI - for creating the API endpoints-pip install fastapi
-#Uvicorn - ASGI server to serve FastAPI applications-pip install uvicorn
-#OpenCV - for video handling and frame processing-pip install opencv-python
-#MediaPipe - for face detection and landmark analysis-pip install mediapipe
-#Requests - to download the video file from a URL-pip install requests
-#post this in postman ---> http://127.0.0.1:8000/analyze/
+# # Example usage
+# video_url = "https://jobfairreaidy.blob.core.windows.net/recordings/6734e016df0d8f51c5d50c38.mp4"
+# result = analyze_video_endpoint(video_url)
+# print(result)
 
+# output
+# {'text_result': 'Video Analysis Report:\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)\n0:00:00: No face detected (away)
+# Run the API with: uvicorn fast_api:app --reload
+# Run the API with: uvicorn fast_api:app --reload
+# FastAPI - for creating the API endpoints-pip install fastapi
+# Uvicorn - ASGI server to serve FastAPI applications-pip install uvicorn
+# OpenCV - for video handling and frame processing-pip install opencv-python
+# MediaPipe - for face detection and landmark analysis-pip install mediapipe
+# Requests - to download the video file from a URL-pip install requests
+# post this in postman ---> http://127.0.0.1:8000/analyze/
