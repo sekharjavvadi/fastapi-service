@@ -182,7 +182,7 @@ def analyze_video_stream(video_path):
                     face_count = len(results.detections)
                     if face_count > 1:
                         multiple_face_detection = True
-                    
+
                     for detection in results.detections:
                         # Improved head orientation analysis
                         bbox = detection.location_data.relative_bounding_box
@@ -202,7 +202,7 @@ def analyze_video_stream(video_path):
                     "head_position": head_position,
                     "multiple_face_detection": multiple_face_detection,
                     "screenshot_url": azure_url      })
-                        
+
                 else:
                 # Append results for the current timestamp
                     results_list.append({
@@ -218,19 +218,19 @@ def detect_tab_switch(prev_frame, current_frame, threshold=50):
     """Detect tab switching by measuring the difference between consecutive frames."""
     if prev_frame is None or current_frame is None:
         return False
- 
+
     # Resize frames to the same dimensions
     height, width = current_frame.shape[:2]
     prev_frame_resized = cv2.resize(prev_frame, (width, height))
- 
+
     # Convert to grayscale
     prev_gray = cv2.cvtColor(prev_frame_resized, cv2.COLOR_BGR2GRAY)
     curr_gray = cv2.cvtColor(current_frame, cv2.COLOR_BGR2GRAY)
- 
+
     # Calculate absolute difference
     diff = cv2.absdiff(prev_gray, curr_gray)
     mean_diff = np.mean(diff)
- 
+
     return mean_diff > threshold  # If large difference, tab switched
 
 # ---------------------------------------------------
@@ -366,7 +366,7 @@ def tab_shift_endpoint(tabshifted_url, input_seconds):
     video_path = download_video(tabshifted_url)
     if not video_path:
         return {"error": "Failed to download video"}
-    
+
     result = tab_shift_detection(video_path, input_seconds)
     os.remove(video_path)  # Clean up downloaded video
     return {"tab_shift_result": result}
@@ -424,7 +424,7 @@ def detect_multiple_voices_endpoint(video_url):
 
 # Example Usage
 # ---------------------------------------------------
-#tabshifted_url = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
+# tabshifted_url = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
 # video_url = "https://reaidytesting.blob.core.windows.net/recordings/VID_20250217_170726.mp4"
 # input_seconds = 3
 
@@ -444,5 +444,4 @@ def detect_multiple_voices_endpoint(video_url):
 # voice_analysis = detect_multiple_voices_endpoint(video_url)
 # print("Voice Analysis:", voice_analysis) 
  #small comment
-
 

@@ -10,8 +10,7 @@ def http_trigger_analysis(req: func.HttpRequest) -> func.HttpResponse:
 
     video_url = req.params.get('video_url')
     input_seconds = req.params.get('input_seconds')
-
-    if not video_url or not input_seconds:
+    if not video_url and input_seconds:
         try:
             req_body = req.get_json()
             video_url = req_body.get('video_url')
@@ -46,14 +45,15 @@ def http_trigger_object_detection(req: func.HttpRequest) -> func.HttpResponse:
         except ValueError:
             pass
 
-    if video_url:
-        result = object_detection_endpoint(video_url)
-        return func.HttpResponse(result, mimetype="application/json")
+    if video_url and input_seconds:
+        result=object_detection_endpoint(video_url,input_seconds)
+        return func.HttpResponse(f"{result}")
+    else:
+        return func.HttpResponse(
+             "This HTTP triggered function executed successfully. Pass a video_url in the query string or in the request body for a personalized response.",
+             status_code=200
+        )
 
-    return func.HttpResponse(
-        "Invalid request. Please provide a valid video_url.",
-        status_code=400
-    )
 
 @app.route(route="http_trigger_tab_shift", auth_level=func.AuthLevel.ANONYMOUS)
 def http_trigger_tab_shift(req: func.HttpRequest) -> func.HttpResponse:
@@ -61,8 +61,7 @@ def http_trigger_tab_shift(req: func.HttpRequest) -> func.HttpResponse:
 
     video_url = req.params.get('video_url')
     input_seconds = req.params.get('input_seconds')
-
-    if not video_url or not input_seconds:
+    if not video_url and input_seconds:
         try:
             req_body = req.get_json()
             video_url = req_body.get('video_url')
