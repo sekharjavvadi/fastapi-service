@@ -10,7 +10,18 @@ from scipy.signal import find_peaks
 from moviepy.video.io.VideoFileClip import VideoFileClip 
 from pydub import AudioSegment 
 from ultralytics import YOLO
-AudioSegment.converter = "C:\\Users\\91949\\Downloads\\ffmpeg-2025-02-10-git-a28dc06869-full_build\\ffmpeg-2025-02-10-git-a28dc06869-full_build\\bin\\ffmpeg.exe"
+
+import os
+import shutil
+
+# Manually set the FFmpeg path inside your function
+ffmpeg_path = r"C:\Users\DELL\Downloads\ffmpeg-2025-02-20-git-bc1a3bfd2c-full_build\bin"
+os.environ["PATH"] += os.pathsep + ffmpeg_path
+
+# Check if FFmpeg is now accessible
+if not shutil.which("ffmpeg"):
+    raise FileNotFoundError(f"FFmpeg not found at {ffmpeg_path}. Ensure the path is correct.")
+
 load_dotenv()
 
 # YOLOv8 Model Initialization
@@ -70,6 +81,7 @@ def extract_audio_from_video(video_path):
         audio = video.audio
         audio_path = tempfile.NamedTemporaryFile(delete=False, suffix=".wav").name
         audio.write_audiofile(audio_path, codec="pcm_s16le") 
+        video.close()
         return audio_path 
     except Exception as e:
         print(f"Error extracting audio from video: {e}")
@@ -224,7 +236,7 @@ def detect_tab_switch(prev_frame, current_frame, threshold=50):
 # ---------------------------------------------------
 # Object Detection Method
 # ---------------------------------------------------
-def object_detection(video_path, input_seconds):
+def object_detection(video_path):
     cap = cv2.VideoCapture(video_path)
     frame_count = 0
     fps = cap.get(cv2.CAP_PROP_FPS)
@@ -341,12 +353,12 @@ def analyze_video_endpoint(video_url):
     return {"analysis_result": result}
 
 
-def object_detection_endpoint(video_url, input_seconds):
+def object_detection_endpoint(video_url):
     video_path = download_video(video_url)
     if not video_path:
         return {"error": "Failed to download video"}
     
-    result = object_detection(video_path, input_seconds)
+    result = object_detection(video_path)
     os.remove(video_path)  # Clean up downloaded video
     return {"object_detection_result": result}
 
@@ -412,16 +424,16 @@ def detect_multiple_voices_endpoint(video_url):
 
 # Example Usage
 # ---------------------------------------------------
-# tabshifted_url = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
-video_url = "https://reaidytesting.blob.core.windows.net/recordings/VID_20250217_170726.mp4"
-input_seconds = 3
+#tabshifted_url = "https://reaidystorage.blob.core.windows.net/recordings/679e05c2ba3c82edd31d87af.mp4"
+# video_url = "https://reaidytesting.blob.core.windows.net/recordings/VID_20250217_170726.mp4"
+# input_seconds = 3
 
 # Object Detection
 # result = object_detection_endpoint(video_url , input_seconds)
 # print(result)
 
 # Tab Shifting
-# tab_shift_result = tab_shift_endpoint(tabshifted_url, input_seconds)
+# tab_shift_result = tab_shift_endpoint(tabshifted_url)
 # print(tab_shift_result)
 
 # Face Detection
